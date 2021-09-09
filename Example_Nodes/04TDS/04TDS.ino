@@ -38,7 +38,8 @@ int analogBufferIndex = 0, copyIndex = 0;
 float averageVoltage = 0, tdsValue = 0, temperature = 25;
 
 bool LEDState = false;
-#define LEDPin 4
+#define LEDPin 5
+#define TDSpower A2
 
 #define one_wire_bus A1
 
@@ -49,6 +50,8 @@ void setup()
 {
     Serial.begin(115200);
     pinMode(TdsSensorPin, INPUT);
+    pinMode(TDSpower, OUTPUT);
+    digitalWrite(TDSpower,HIGH);
 
     delay(1000);
     Serial.println("Test Begin:");
@@ -231,6 +234,6 @@ int command_explain(String str)
 String create_reply_data()
 {
     String reply = "";
-    reply = reply + "TEM " + (int)(temperature * 10) + " TDV " + (int)tdsValue;
+    reply = reply + "TEM " + (int)(temperature * 10) + " TDS " + (int)tdsValue;
     return reply;
 }
