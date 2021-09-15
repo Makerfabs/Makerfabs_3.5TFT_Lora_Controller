@@ -12,7 +12,8 @@
 
 #define SUCCESS 1
 #define FALSE 0
-#define ASK_CYCLE 10000
+#define ASK_CYCLE 15000
+#define RECEIVE_LEN 15
 
 //#define DEBUG_ID "IDXDEBUG"
 #define DEBUG_ID "ID000004"
@@ -88,10 +89,14 @@ void main_page()
     Serial.println("PAGE:main_page");
 
     //Button init
-    Button b_add(380, 60, 89, 80, "Add", 0);
-    b_add.setText2("Node");
-    Button b_control(380, 160, 89, 80, "Con", 0);
-    b_control.setText2("trol");
+    // Button b_add(380, 60, 89, 80, "Add", 0);
+    // b_add.setText2("Node");
+    // Button b_control(380, 160, 89, 80, "Con", 0);
+    // b_control.setText2("trol");
+
+    Button b_add(380, 60, 89, 60, "ADD", 0);
+    Button b_del(380, 130, 89, 60, "DEL", 0);
+    Button b_rec(380, 200, 89, 60, "REC", 0);
 
     //Button init
     Button b_node[5];
@@ -116,8 +121,13 @@ void main_page()
                 icon_switch(node_list[i].getType(), i);
             //print_img_small(SD, "/s00.bmp", 330, 64, 32, 32);
         }
-        drawButton_2L(b_add);
-        drawButton_2L(b_control);
+
+        drawButton(b_add);
+        drawButton(b_del);
+        drawButton(b_rec);
+
+        // drawButton_2L(b_add);
+        // drawButton_2L(b_del);
 
         //tft.fillRect(310, 64, 32, 32, TFT_RED);
         //print_img(SD, "/s00.bmp", 32, 32);
@@ -204,14 +214,14 @@ void main_page()
                     break;
                 }
 
-                if ((button_value = b_control.checkTouch(pos[0], pos[1])) != UNABLE)
+                if ((button_value = b_del.checkTouch(pos[0], pos[1])) != UNABLE)
                 {
                     if (DEBUG)
                     {
-                        Serial.println("Control Button");
+                        Serial.println("DEL Button");
                     }
 
-                    if (control_page() == SUCCESS)
+                    if (del_page() == SUCCESS)
                     {
                         //Init all nodes
                         for (int i = 0; i < 5; i++)
@@ -219,6 +229,17 @@ void main_page()
                             b_node[i].set(20, 60 + 50 * i, 300, 40, "NULL", UNABLE);
                         }
                     }
+                    break;
+                }
+
+                if ((button_value = b_rec.checkTouch(pos[0], pos[1])) != UNABLE)
+                {
+                    if (DEBUG)
+                    {
+                        Serial.println("REC Button");
+                    }
+
+                    receive_page();
                     break;
                 }
 
@@ -373,9 +394,9 @@ int add_page()
         }
     }
 }
-int control_page()
+int del_page()
 {
-    Serial.println("PAGE:control_page");
+    Serial.println("PAGE:del_page");
 
     Button b_clean(40, 220, 180, 80, "Clean", 1);
     Button b_back(240, 220, 180, 80, "Back", 2);
@@ -388,7 +409,7 @@ int control_page()
     while (1)
     {
         //page init
-        page_title("CONTORL PAGE");
+        page_title("DELETE PAGE");
 
         drawButton(b_clean);
         drawButton(b_back);
@@ -439,6 +460,82 @@ int control_page()
         }
     }
 }
+
+void receive_page()
+{
+    Serial.println("PAGE:del_page");
+
+    Button b_back(270, 260, 150, 50, "Back", 2);
+
+    long runtime = millis();
+    int pos[2] = {0, 0};
+
+    String rec_list[RECEIVE_LEN];
+    int rec_index = 0;
+    int rec_num = 0;
+
+    //Page refresh loop
+    while (1)
+    {
+        //page init
+        page_title("RECEIVE PAGE");
+
+        drawButton(b_back);
+        tft.drawRect(9, 44, 462, 202, TFT_WHITE);
+
+        //Prevent accidental touch.
+        delay(1000);
+
+        //Working loop
+        while (1)
+        {
+            String rec_str = "";
+            rec_str = lora.receive();
+            if (!rec_str.equals(""))
+            {
+                rec_list[rec_index] = rec_str;
+                int temp_index = rec_index;
+
+                if (rec_index == RECEIVE_LEN - 1)
+                    rec_index = 0;
+                else
+                    rec_index++;
+
+                if (rec_num < RECEIVE_LEN)
+                    rec_num++;
+
+                tft.fillRect(10, 45, 460, 200, TFT_BLACK);
+                tft.setTextColor(TFT_WHITE);
+                tft.setTextSize(1);
+
+                for (int i = 0; i < rec_num; i++)
+                {
+                    tft.setCursor(12, 50 + i * 10);
+                    tft.println(rec_list[temp_index--]);
+                    if (temp_index < 0)
+                        temp_index = rec_num - 1;
+                }
+            }
+            //button check
+            if (get_touch(pos))
+            {
+
+                int button_value = UNABLE;
+                //Button:Back
+                if ((button_value = b_back.checkTouch(pos[0], pos[1])) != UNABLE)
+                {
+                    if (DEBUG)
+                    {
+                        Serial.println("Back Button");
+                    }
+                    return;
+                }
+            }
+        }
+    }
+    return;
+}
+
 void icon_switch(int type, int num)
 {
     int y_pos = 64 + 50 * num;
