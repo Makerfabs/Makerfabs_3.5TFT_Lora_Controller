@@ -234,6 +234,6 @@ int command_explain(String str)
 String create_reply_data()
 {
     String reply = "";
-    reply = reply + "TEM " + (int)(temperature * 10) + " TDS " + (int)tdsValue;
+    reply = reply + "TEM " + (int)(temperature * 10) + " TDV " + (int)tdsValue;
     return reply;
 }
