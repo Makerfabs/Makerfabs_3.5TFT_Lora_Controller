@@ -12,11 +12,11 @@
 
 #define SUCCESS 1
 #define FALSE 0
-#define ASK_CYCLE 15000
+#define ASK_CYCLE 5000
 #define RECEIVE_LEN 15
 
-//#define DEBUG_ID "IDXDEBUG"
-#define DEBUG_ID "ID000004"
+#define DEBUG_ID "IDXDEBUG"
+//#define DEBUG_ID "ID000004"
 
 struct LGFX_Config
 {

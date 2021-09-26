@@ -77,7 +77,7 @@ void setup()
 
   Serial.println(" Test Begin!");
 
-  Wire.begin();
+  Wire.begin(4, 5);
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
   { // Address 0x3C for 128x32
