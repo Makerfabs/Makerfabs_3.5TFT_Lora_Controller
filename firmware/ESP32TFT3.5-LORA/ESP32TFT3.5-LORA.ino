@@ -32,7 +32,7 @@ static LGFX_Sprite sprite(&tft);
 static lgfx::Panel_ILI9488 panel;
 
 SPIClass SPI_Lora = SPIClass(HSPI);
-SX1278 radio = new Module(LORA_CS, LORA_DIO0, LORA_RST, LORA_DIO1, SPI_Lora, SPISettings());
+SX1276 radio = new Module(LORA_CS, LORA_DIO0, LORA_RST, LORA_DIO1, SPI_Lora, SPISettings());
 Lora lora(&radio);
 
 //
