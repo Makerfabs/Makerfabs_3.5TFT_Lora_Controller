@@ -2,6 +2,8 @@
 #include <SPI.h>
 #include <LovyanGFX.hpp>
 #include <RadioLib.h>
+#include <WiFi.h>
+#include <time.h>
 
 #include "makerfabs_pin.h"
 #include "log_save.h"
@@ -20,6 +22,23 @@
 
 #define SOIL_FILE "/soil_id.txt"
 #define RELAY_FILE "/relay_id.txt"
+#define WIFI_FILE "/wifi.txt"
+
+#define COLOR_BACKGROUND 0xEF9E
+#define COLOR_BUTTON TFT_WHITE
+#define COLOR_TEXT 0x322B
+#define COLOR_LINE TFT_BLACK
+#define COLOR_SHADOW 0x4BAF
+
+//Wifi and ntp
+char ssid[40] = "ssid";
+char pwd[40] = "121345678";
+const char *ntpServer = "120.25.108.11";
+const long gmtOffset_sec = (-5) * 60 * 60; //China+8
+const int daylightOffset_sec = 0;
+struct tm timeinfo;
+int16_t timezone = 8;
+int wifi_flag = FALSE;
 
 struct LGFX_Config
 {
@@ -40,14 +59,6 @@ SX1276 radio = new Module(LORA_CS, LORA_DIO0, LORA_RST, LORA_DIO1, SPI_Lora, SPI
 Lora lora(&radio);
 
 //全局传感器对象
-/*
-LoraNode node_list[10];
-int node_num = 0;
-
-int node_id_list[10];
-int list_count = 0;
-*/
-
 //Soil
 LoraNode soil_list[8];
 int soil_num;
@@ -87,6 +98,11 @@ void setup()
     for (int i = 0; i < 8; i++)
         soil_data_list[i] = "No Reply";
 
+    read_wifi_config(SD, WIFI_FILE, ssid, pwd);
+
+    page_title("Initing......");
+    wifi_flag = wifi_init();
+
     welcome_page();
 }
 
@@ -103,7 +119,7 @@ void welcome_page()
     print_img(SD, "/logo.bmp", 480, 320);
     // tft.setRotation(SCRENN_ROTATION);
     delay(3000);
-    tft.fillScreen(TFT_BLACK);
+    tft.fillScreen(COLOR_BACKGROUND);
 }
 
 void main_page()
@@ -113,8 +129,11 @@ void main_page()
     Button b_relay[RELAY_NUM_MAX];
     Button b_add_relay;
     Button b_set;
+    Button b_clock;
 
     int pos[2] = {0, 0};
+    long lora_runtime = 0;
+    long clock_runtime = 0;
 
     //page init
     page_title("ESP32 TFT LORA");
@@ -136,9 +155,9 @@ void main_page()
     {
         soil_list[i].setNode(soil_id_list[i], soil_id_list[i] / 10000);
         if (i < 4)
-            b_soil[i].set(10, 60 + 50 * i, 140, 40, "NULL", ENABLE);
+            b_soil[i].set(10, 60 + 50 * i, 140, 40, "NULL", UNABLE);
         else
-            b_soil[i].set(170, 60 + 50 * (i - 4), 140, 40, "NULL", ENABLE);
+            b_soil[i].set(170, 60 + 50 * (i - 4), 140, 40, "NULL", UNABLE);
         String show_txt = soil_list[i].getId_str() + " " + soil_list[i].getType_str();
         b_soil[i].setText(show_txt);
         //b_soil[i].setText2("No Reply");
@@ -168,7 +187,7 @@ void main_page()
     for (int i = 0; i < relay_num; i++)
     {
         relay_list[i].setNode(relay_id_list[i], relay_id_list[i] / 10000);
-        b_relay[i].set(330, 60 + 50 * i, 140, 40, "NULL", ENABLE);
+        b_relay[i].set(330, 60 + 100 * i, 140, 80, "NULL", ENABLE);
         String show_txt = relay_list[i].getId_str() + " " + relay_list[i].getType_str();
         b_relay[i].setText(show_txt);
         b_relay[i].setText2("No Reply");
@@ -182,9 +201,13 @@ void main_page()
         drawButton(b_add_relay);
     }
 
-    b_set.set(10, 260, 140, 40, "SET", ENABLE);
+    b_set.set(330, 260, 140, 40, "SET", ENABLE);
     b_set.setTextSize(2);
     drawButton(b_set);
+
+    b_clock.set(10, 260, 270, 40, "WIFI UNLINK", UNABLE);
+    b_clock.setTextSize(4);
+    drawButton_clock(b_clock);
 
     //延迟两秒防止误触
     delay(2000);
@@ -260,24 +283,120 @@ void main_page()
                         Serial.printf("Text is :");
                         Serial.println(b_relay[i].getText());
                     }
-                    relay4_control_page(relay_list[i].getId_str());
+                    relay4_page(relay_list[i].getId_str());
+                    //relay4_control_page(relay_list[i].getId_str());
                     return;
                     //break;
                 }
             }
         }
 
-        //Receive Lora
-        String rec_str = "";
-        rec_str = lora.receive();
-        if (!rec_str.equals(""))
+        if ((lora_runtime - millis()) > 1000)
         {
-            Serial.println(rec_str);
-            soil_reply_analyse(rec_str);
-            break;
+            //Receive Lora
+            String rec_str = "";
+            rec_str = lora.receive();
+            lora_runtime = millis();
+            if (!rec_str.equals(""))
+            {
+                Serial.println(rec_str);
+                soil_reply_analyse(rec_str);
+                break;
+            }
+        }
+
+        if (wifi_flag == SUCCESS)
+        {
+            if ((clock_runtime - millis()) > 1000)
+            {
+                clock_runtime = millis();
+
+                //Receive Lora
+                char time_str[20] = "";
+
+                if (!getLocalTime(&timeinfo))
+                {
+                    Serial.println("Failed to obtain time");
+                }
+                else
+                {
+                    sprintf(time_str, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+                    b_clock.setText((String)time_str);
+                    drawButton_clock(b_clock);
+                }
+            }
         }
 
         delay(10);
+    }
+}
+
+//TYPE03    RELAY4
+void relay4_page(String Node_id)
+{
+
+    Serial.println("PAGE:lora_relay4_page");
+
+    //Button init
+    Button b_control(40, 220, 180, 80, "Control", 1);
+    Button b_back(240, 220, 180, 80, "Back", 2);
+
+    long runtime = millis();
+    int pos[2] = {0, 0};
+
+    //Page fresh loop
+    while (1)
+    {
+        //page init
+        page_title("LORA RELAY 4Channel");
+        tft.setCursor(20, 50);
+        tft.println(Node_id);
+
+        drawButton(b_control);
+        drawButton(b_back);
+
+        //Prevent accidental touch.
+        delay(1000);
+
+        //Working loop
+        while (1)
+        {
+            //Every 5s
+            if (millis() - runtime > ASK_CYCLE)
+            {
+                String cut_reply = typical_lora_check_request(Node_id);
+
+                //show Relay status
+                tft.fillRect(20, 100, 300, 50, COLOR_BACKGROUND);
+                tft.setCursor(20, 100);
+                tft.setTextSize(2);
+                tft.println(cut_reply);
+
+                runtime = millis();
+            }
+
+            //button check
+
+            if (get_touch(pos))
+            {
+
+                int button_value = UNABLE;
+                if ((button_value = b_control.checkTouch(pos[0], pos[1])) != UNABLE)
+                {
+                    relay4_control_page(Node_id);
+                    delay(400);
+                    break;
+                }
+                if ((button_value = b_back.checkTouch(pos[0], pos[1])) != UNABLE)
+                {
+                    if (DEBUG)
+                    {
+                        Serial.println("Back Button");
+                    }
+                    return;
+                }
+            }
+        }
     }
 }
 
@@ -288,13 +407,13 @@ void relay4_control_page(String Node_id)
     Button b_send(40, 220, 180, 80, "Send", 1);
     Button b_back(240, 220, 180, 80, "Back", 2);
 
-    Button b_relay_list[4];
+    Button b_relay_switch[4];
     for (int i = 0; i < 2; i++)
     {
         for (int j = 0; j < 2; j++)
         {
             String relay_name = (String) "Relay" + (2 * i + j) + ":OFF";
-            b_relay_list[2 * i + j].set(40 + 200 * j, 80 + 70 * i, 160, 60, relay_name, 0);
+            b_relay_switch[2 * i + j].set(40 + 200 * j, 80 + 70 * i, 160, 60, relay_name, 0);
         }
     }
 
@@ -311,7 +430,7 @@ void relay4_control_page(String Node_id)
         drawButton(b_send);
         drawButton(b_back);
         for (int i = 0; i < 4; i++)
-            drawButton(b_relay_list[i]);
+            drawButton(b_relay_switch[i]);
 
         //Prevent accidental touch.
         delay(1000);
@@ -341,7 +460,7 @@ void relay4_control_page(String Node_id)
                     for (int i = 3; i >= 0; i--)
                     {
                         message_param *= 10;
-                        message_param += b_relay_list[i].getValue();
+                        message_param += b_relay_switch[i].getValue();
                     }
                     String lora_str = lora.command_format(Node_id, 2, message_param);
                     lora.send(lora_str);
@@ -364,19 +483,19 @@ void relay4_control_page(String Node_id)
                 int refresh_flag = 0;
                 for (int i = 0; i < 5; i++)
                 {
-                    if ((button_value = b_relay_list[i].checkTouch(pos[0], pos[1])) != UNABLE)
+                    if ((button_value = b_relay_switch[i].checkTouch(pos[0], pos[1])) != UNABLE)
                     {
                         if (DEBUG)
                         {
                             Serial.println("Relay Button");
                         }
 
-                        int temp = b_relay_list[i].getValue();
+                        int temp = b_relay_switch[i].getValue();
                         temp = !temp;
 
-                        b_relay_list[i].setValue(temp);
+                        b_relay_switch[i].setValue(temp);
                         temp_str = (String) "Relay" + i + (temp != 0 ? ":ON" : ":OFF");
-                        b_relay_list[i].setText(temp_str);
+                        b_relay_switch[i].setText(temp_str);
 
                         if (DEBUG)
                         {
@@ -446,7 +565,7 @@ int add_soil_page()
 {
     Serial.println("PAGE:add_soil_page");
 
-    Button b_send(40, 220, 180, 80, "Add", 1);
+    Button b_add(40, 220, 180, 80, "Add", 1);
     Button b_back(240, 220, 180, 80, "Back", 2);
     Button b_id(40, 60, 300, 50, "ID000000", 0);
 
@@ -458,9 +577,9 @@ int add_soil_page()
     while (1)
     {
         //page init
-        page_title("ADD LORA NODE");
+        page_title("ADD SOIL MOISTURE");
 
-        drawButton(b_send);
+        drawButton(b_add);
         drawButton(b_back);
         drawButton(b_id);
 
@@ -475,27 +594,35 @@ int add_soil_page()
             {
                 int button_value = UNABLE;
                 //Button:Add
-                if ((button_value = b_send.checkTouch(pos[0], pos[1])) != UNABLE)
+                if ((button_value = b_add.checkTouch(pos[0], pos[1])) != UNABLE)
                 {
                     if (DEBUG)
                     {
                         Serial.println("Add Lora Node");
                     }
 
-                    //Add a lora node
-                    // node_list[lora_num].setNode(b_id.getValue(), b_id.getValue() / 10000);
-                    // lora_num++;
-                    char node_c[20];
-                    sprintf(node_c, "%d;\n", b_id.getValue());
-                    appendFile(SD, SOIL_FILE, node_c);
-
                     page_alert("Add....");
                     delay(1000);
-                    tft.setCursor(100, 160);
-                    tft.println("Over and Back.");
-                    delay(500);
 
-                    return SUCCESS;
+                    //Add a lora node
+                    if (b_id.getValue() / 10000 == 1)
+                    {
+                        char node_c[20];
+                        sprintf(node_c, "%d;\n", b_id.getValue());
+                        appendFile(SD, SOIL_FILE, node_c);
+
+                        tft.setCursor(100, 160);
+                        tft.println("Over and Back.");
+                        delay(500);
+                        return SUCCESS;
+                    }
+                    else
+                    {
+                        tft.setCursor(100, 160);
+                        tft.println("Soil ID must be 01XXXX.");
+                        delay(500);
+                        break;
+                    }
                 }
                 //Button:Back
                 if ((button_value = b_back.checkTouch(pos[0], pos[1])) != UNABLE)
@@ -540,7 +667,7 @@ int add_relay_page()
 {
     Serial.println("PAGE:add_relay_page");
 
-    Button b_send(40, 220, 180, 80, "Add", 1);
+    Button b_add(40, 220, 180, 80, "Add", 1);
     Button b_back(240, 220, 180, 80, "Back", 2);
     Button b_id(40, 60, 300, 50, "ID000000", 0);
 
@@ -552,9 +679,9 @@ int add_relay_page()
     while (1)
     {
         //page init
-        page_title("ADD LORA NODE");
+        page_title("ADD RELAY4 DEVICE");
 
-        drawButton(b_send);
+        drawButton(b_add);
         drawButton(b_back);
         drawButton(b_id);
 
@@ -569,27 +696,35 @@ int add_relay_page()
             {
                 int button_value = UNABLE;
                 //Button:Add
-                if ((button_value = b_send.checkTouch(pos[0], pos[1])) != UNABLE)
+                if ((button_value = b_add.checkTouch(pos[0], pos[1])) != UNABLE)
                 {
                     if (DEBUG)
                     {
                         Serial.println("Add Lora Node");
                     }
 
-                    //Add a lora node
-                    // node_list[lora_num].setNode(b_id.getValue(), b_id.getValue() / 10000);
-                    // lora_num++;
-                    char node_c[20];
-                    sprintf(node_c, "%d;\n", b_id.getValue());
-                    appendFile(SD, RELAY_FILE, node_c);
-
                     page_alert("Add....");
                     delay(1000);
-                    tft.setCursor(100, 160);
-                    tft.println("Over and Back.");
-                    delay(500);
 
-                    return SUCCESS;
+                    //Add a lora node
+                    if (b_id.getValue() / 10000 == 3)
+                    {
+                        char node_c[20];
+                        sprintf(node_c, "%d;\n", b_id.getValue());
+                        appendFile(SD, RELAY_FILE, node_c);
+
+                        tft.setCursor(100, 160);
+                        tft.println("Over and Back.");
+                        delay(500);
+                        return SUCCESS;
+                    }
+                    else
+                    {
+                        tft.setCursor(100, 160);
+                        tft.println("Relay4 ID must be 03XXXX.");
+                        delay(500);
+                        break;
+                    }
                 }
                 //Button:Back
                 if ((button_value = b_back.checkTouch(pos[0], pos[1])) != UNABLE)
@@ -700,8 +835,8 @@ int set_page()
 
 void page_title(String title)
 {
-    tft.fillScreen(TFT_BLACK);
-    tft.setTextColor(TFT_WHITE);
+    tft.fillScreen(COLOR_BACKGROUND);
+    tft.setTextColor(COLOR_TEXT);
     tft.setCursor(20, 10);
     tft.setTextSize(4);
     tft.println(title);
@@ -709,9 +844,10 @@ void page_title(String title)
 
 void page_alert(String msg)
 {
-    tft.fillRect(80, 80, 320, 160, TFT_WHITE);
+    tft.fillRect(80, 80, 320, 160, COLOR_BUTTON);
+    tft.drawRect(80, 80, 320, 160, COLOR_LINE);
     tft.setCursor(100, 120);
-    tft.setTextColor(TFT_BLACK);
+    tft.setTextColor(COLOR_TEXT);
     tft.setTextSize(2);
     tft.println(msg);
 }
@@ -726,10 +862,10 @@ int num_pad(int last_num)
     //input window init
     int output_value = last_num;
 
-    tft.fillScreen(TFT_BLACK);
-    tft.drawRect(20, 20, 440, 80, TFT_WHITE);
+    tft.fillScreen(COLOR_BACKGROUND);
+    tft.drawRect(20, 20, 440, 80, COLOR_LINE);
     tft.setCursor(40, 40);
-    tft.setTextColor(TFT_WHITE);
+    tft.setTextColor(COLOR_TEXT);
     tft.setTextSize(4);
     tft.println(String(output_value));
 
@@ -794,10 +930,10 @@ int num_pad(int last_num)
                         else
                             output_value /= 10;
 
-                        tft.fillRect(40, 40, 300, 50, TFT_BLACK);
+                        tft.fillRect(40, 40, 300, 50, COLOR_BACKGROUND);
                         tft.setCursor(40, 40);
                         tft.setTextSize(4);
-                        tft.setTextColor(TFT_WHITE);
+                        tft.setTextColor(COLOR_TEXT);
                         tft.println(String(output_value));
 
                         delay(400);
@@ -833,17 +969,25 @@ void drawButton(Button b)
     int b_y;
     int b_w;
     int b_h;
+    int shadow_len = 4;
     String text;
     int textSize;
 
     b.getFoDraw(&b_x, &b_y, &b_w, &b_h, &text, &textSize);
 
-    tft.fillRect(b_x, b_y, b_w, b_h, TFT_BLACK);
-    tft.drawRect(b_x, b_y, b_w, b_h, TFT_WHITE);
+    tft.fillRect(b_x, b_y, b_w, b_h, COLOR_BUTTON);
+    tft.drawRect(b_x, b_y, b_w, b_h, COLOR_LINE);
     tft.setCursor(b_x + 20, b_y + 20);
-    tft.setTextColor(TFT_WHITE);
+    tft.setTextColor(COLOR_TEXT);
     tft.setTextSize(textSize);
     tft.println(text);
+
+    //Add button shadow
+    if (b.getValue() != UNABLE)
+    {
+        tft.fillRect(b_x + shadow_len, b_y + b_h, b_w, shadow_len, COLOR_SHADOW);
+        tft.fillRect(b_x + b_w, b_y + shadow_len, shadow_len, b_h, COLOR_SHADOW);
+    }
 }
 
 void drawButton_2L(Button b)
@@ -859,14 +1003,33 @@ void drawButton_2L(Button b)
     b.getFoDraw(&b_x, &b_y, &b_w, &b_h, &text, &textSize);
     text2 = b.getText2();
 
-    tft.fillRect(b_x, b_y, b_w, b_h, TFT_BLACK);
-    tft.drawRect(b_x, b_y, b_w, b_h, TFT_WHITE);
+    tft.fillRect(b_x, b_y, b_w, b_h, TFT_WHITE);
+    tft.drawRect(b_x, b_y, b_w, b_h, COLOR_LINE);
     tft.setCursor(b_x + 20, b_y + textSize * 10);
-    tft.setTextColor(TFT_WHITE);
+    tft.setTextColor(COLOR_TEXT);
     tft.setTextSize(textSize);
     tft.println(text);
     tft.setCursor(b_x + 20, b_y + 2 * textSize * 10);
     tft.println(text2);
+}
+
+void drawButton_clock(Button b)
+{
+    int b_x;
+    int b_y;
+    int b_w;
+    int b_h;
+    String text;
+    int textSize;
+
+    b.getFoDraw(&b_x, &b_y, &b_w, &b_h, &text, &textSize);
+
+    tft.fillRect(b_x, b_y, b_w, b_h, COLOR_BACKGROUND);
+    //tft.drawRect(b_x, b_y, b_w, b_h, COLOR_LINE);
+    tft.setCursor(b_x + 5, b_y + 5);
+    tft.setTextColor(COLOR_TEXT);
+    tft.setTextSize(4);
+    tft.println(text);
 }
 
 //Display image from file
@@ -896,6 +1059,44 @@ int print_img(fs::FS &fs, String filename, int x, int y)
 }
 
 //********************Lora Transform and Log Save******************
+
+//A standard, generic program that sends query commands, parses and stores them on an SD card through the Lora protocol.
+String typical_lora_check_request(String Node_id)
+{
+    //send a lora message to a usual lora node
+    String lora_str = lora.command_format(Node_id, 114, 0);
+    //lora.send("ID000123ACT114PARAM000000");
+    lora.send(lora_str);
+
+    //if not reply, show error
+    String rec_str = "";
+    rec_str = lora.receive();
+
+    //Cut reply don't have node id, it's for screen display.
+    String cut_reply = "";
+
+    if (rec_str.equals(""))
+    {
+        rec_str = "NULL";
+        cut_reply = "NO REPLY";
+    }
+    else if (!rec_str.startsWith(Node_id))
+    {
+        rec_str = "NULL";
+        cut_reply = "NO REPLY";
+    }
+    else
+    {
+        char rec_cstr[100];
+        rec_str.toCharArray(rec_cstr, 100);
+        appendFile(SD, "/lora_log.txt", rec_cstr);
+        appendFile(SD, "/lora_log.txt", "\n");
+        readFile(SD, "/lora_log.txt");
+
+        cut_reply = lora.reply_analyse(rec_str);
+    }
+    return cut_reply;
+}
 
 //data example:
 //ID010003 REPLY : SOIL INEDX:0 H:48.85 T:30.50 ADC:896 BAT:1016
@@ -938,7 +1139,7 @@ int read_nodes_id(fs::FS &fs, const char *path, int *node_id_list, int list_len)
     //遍历文件
     String msg = "";
     char c;
-    Serial.print("Read from file: ");
+    Serial.println("Read from file: ");
     while (file.available())
     {
 
@@ -962,4 +1163,86 @@ int read_nodes_id(fs::FS &fs, const char *path, int *node_id_list, int list_len)
     file.close();
 
     return node_num;
+}
+
+int read_wifi_config(fs::FS &fs, const char *path, char *ssid, char *pwd)
+{
+    //如果文件不存在
+    Serial.printf("Reading file: %s\n", path);
+
+    File file = fs.open(path);
+    if (!file)
+    {
+        Serial.println("Failed to open file for reading");
+        return 0;
+    }
+
+    //遍历文件
+    String msg = "";
+    int null_flag = 0;
+    char c;
+    String data[2];
+    int data_index = 0;
+    Serial.println("Read from file: ");
+    while (file.available())
+    {
+
+        c = file.read();
+        if (c == '\r' || c == '\n')
+        {
+            if (null_flag == 1)
+            {
+                Serial.println(msg);
+                data[data_index++] = msg;
+                msg = "";
+                null_flag = 0;
+
+                if (data_index == 2)
+                {
+                    strcpy(ssid, data[0].c_str());
+                    strcpy(pwd, data[1].c_str());
+                    break;
+                }
+            }
+        }
+        else
+        {
+            msg += c;
+            null_flag = 1;
+        }
+    }
+    file.close();
+}
+
+int wifi_init()
+{
+    Serial.println("Prepare Link Wifi");
+    // WiFi.begin(ssid.c_str(), pwd.c_str());
+    WiFi.begin(ssid, pwd);
+
+    int connect_count = 0;
+
+    //10S未连接上自动跳过并返回0
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(500);
+        Serial.print(".");
+        connect_count++;
+        if (connect_count > 20)
+        {
+            Serial.println("Wifi time out");
+            return FALSE;
+        }
+    }
+
+    // 成功连接上WIFI则输出IP并返回1
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+
+    configTime((const long)(timezone * 3600), daylightOffset_sec, ntpServer);
+    Serial.println(F("Alread get npt time."));
+
+    return SUCCESS;
 }
