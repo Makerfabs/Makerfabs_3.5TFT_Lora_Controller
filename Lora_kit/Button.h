@@ -21,6 +21,7 @@ private:
     //Button text
     String text;
     String text2;
+    String text3;
     int textSize;
 
     //Button value, default value = -1 is untouchable
@@ -37,6 +38,8 @@ public:
     String getText();
     void setText2(String t);
     String getText2();
+    void setText3(String t);
+    String getText3();
     void setValue(int v);
     int getValue();
     void setTextSize(int textSize);

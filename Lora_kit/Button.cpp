@@ -77,6 +77,16 @@ String Button::getText2()
     return text2;
 }
 
+void Button::setText3(String t)
+{
+    text3 = t;
+}
+
+String Button::getText3()
+{
+    return text3;
+}
+
 void Button::setValue(int v)
 {
     value = v;
@@ -89,5 +99,6 @@ int Button::getValue()
 
 void Button::setTextSize(int textSize)
 {
-    this->textSize = textSize;;
+    this->textSize = textSize;
+    ;
 }
