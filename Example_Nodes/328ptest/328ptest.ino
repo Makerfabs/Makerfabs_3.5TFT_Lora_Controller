@@ -69,7 +69,15 @@ void setup()
     }
 }
 
+int index = 0;
+
 void loop()
+{
+    radio.transmit((String) "ID010123 REPLY : SOIL INEDX:" + index + " H:48.85 T:30.50 ADC:896 BAT:1016");
+    delay(5000);
+}
+
+void loop2()
 {
     //Serial.print(F("[SX1278] Waiting for incoming transmission ... "));
 

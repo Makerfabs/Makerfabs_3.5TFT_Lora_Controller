@@ -1,7 +1,7 @@
 #ifndef _Makerfabs_Pin_H_
 #define _Makerfabs_Pin_H_
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define I2C_SDA 26
 #define I2C_SCL 27
