@@ -28,6 +28,7 @@
 
 #define SOIL_FILE "/soil_id.txt"
 #define RELAY_FILE "/relay_id.txt"
+#define MOS_FILE "/mos_id.txt"
 #define WIFI_FILE "/wifi.txt"
 #define SOIL_LOG_FILE "/lora_log_soil.txt"
 
@@ -65,6 +66,7 @@ struct tm timeinfo;
 String global_time = "WIFI UNLINK";
 int time_fresh_flag = FALSE;
 int log_index = 0;
+int page_fresh_flag = FALSE;
 
 //Lora node
 int lora_task_index = 0;
@@ -100,8 +102,8 @@ void setup()
         soil_time_list[i] = "NULL";
     }
 
-    xTaskCreatePinnedToCore(Task_TFT, "Task_TFT", 10240, NULL, 3, NULL, ARDUINO_RUNNING_CORE);
-    xTaskCreatePinnedToCore(Task_Lora, "Task_Lora", 2048, NULL, 2, NULL, ARDUINO_RUNNING_CORE);
+    xTaskCreatePinnedToCore(Task_TFT, "Task_TFT", 20480, NULL, 3, NULL, ARDUINO_RUNNING_CORE);
+    xTaskCreatePinnedToCore(Task_Lora, "Task_Lora", 10240, NULL, 2, NULL, ARDUINO_RUNNING_CORE);
 
     if (wifi_flag == SUCCESS)
         xTaskCreatePinnedToCore(Task_Clock, "Task_Clock", 2048, NULL, 2, NULL, ARDUINO_RUNNING_CORE);
@@ -155,7 +157,7 @@ void Task_Clock(void *pvParameters)
         {
             sprintf(time_str, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
             global_time = (String)time_str;
-            Serial.println(global_time);
+            // Serial.println(global_time);
             time_fresh_flag = SUCCESS;
         }
         vTaskDelay(300);
@@ -183,19 +185,17 @@ void Task_Lora(void *pvParameters)
                 switch (lora_task_index)
                 {
                 case 0:
-                    soil_reply_analyse(rec_str);
                     break;
                 case 1:
+                    soil_reply_analyse(rec_str);
                     break;
                 default:
                     break;
                 }
-                // test_str = rec_str;
-                // soil_reply_analyse(rec_str);
             }
         }
 
-        vTaskDelay(1000);
+        vTaskDelay(100);
     }
 }
 
@@ -517,7 +517,7 @@ void main_page()
         soil_num = SOIL_NUM_MAX;
 
     //Read relay from file
-    relay_num = read_nodes_id(SD, RELAY_FILE, relay_id_list, RELAY_NUM_MAX);
+    relay_num = read_nodes_id(SD, MOS_FILE, relay_id_list, RELAY_NUM_MAX);
 
     for (int i = 0; i < relay_num; i++)
     {
@@ -645,7 +645,7 @@ void main_page()
                         Serial.printf("Text is :");
                         Serial.println(b_relay[i].getText());
                     }
-                    relay4_page_v2(relay_list[i].getId_str());
+                    mos_page(relay_list[i].getId_str());
                     //relay4_control_page(relay_list[i].getId_str());
                     return;
                     //break;
@@ -658,6 +658,12 @@ void main_page()
             time_fresh_flag = 0;
             b_clock.setText(global_time);
             drawButton_clock(b_clock);
+        }
+
+        if (page_fresh_flag == SUCCESS)
+        {
+            page_fresh_flag = FALSE;
+            break;
         }
 
         vTaskDelay(100);
@@ -810,11 +816,11 @@ int add_relay_page()
                     delay(1000);
 
                     //Add a lora node
-                    if (b_id.getValue() / 10000 == 3)
+                    if (b_id.getValue() / 10000 == 6)
                     {
                         char node_c[20];
                         sprintf(node_c, "%d;\n", b_id.getValue());
-                        appendFile(SD, RELAY_FILE, node_c);
+                        appendFile(SD, MOS_FILE, node_c);
 
                         tft.setCursor(100, 160);
                         tft.println("Over and Back.");
@@ -824,7 +830,7 @@ int add_relay_page()
                     else
                     {
                         tft.setCursor(100, 160);
-                        tft.println("Relay4 ID must be 03XXXX.");
+                        tft.println("MOS4 ID must be 06XXXX.");
                         delay(500);
                         break;
                     }
@@ -908,7 +914,7 @@ int set_page()
 
                     //Clean lora node
                     writeFile(SD, SOIL_FILE, "");
-                    writeFile(SD, RELAY_FILE, "");
+                    writeFile(SD, MOS_FILE, "");
 
                     //Clean all soil data
                     for (int i = 0; i < 8; i++)
@@ -939,9 +945,9 @@ int set_page()
     }
 }
 
-void relay4_page_v2(String Node_id)
+void mos_page(String Node_id)
 {
-    Serial.println("PAGE:lora_relay4_page");
+    Serial.println("PAGE:lora_mos4_page");
 
     lora_task_index = 0;
 
@@ -950,12 +956,12 @@ void relay4_page_v2(String Node_id)
     Button b_back(240, 250, 180, 50, "Back", 2);
 
     //Four button
-    Button b_relay_switch[4];
+    Button b_mos_switch[4];
     for (int i = 0; i < 2; i++)
     {
         for (int j = 0; j < 2; j++)
         {
-            b_relay_switch[2 * i + j].set(40 + 200 * j, 120 + 60 * i, 160, 50, "NULL", UNABLE);
+            b_mos_switch[2 * i + j].set(40 + 200 * j, 120 + 60 * i, 160, 50, "NULL", UNABLE);
         }
     }
 
@@ -968,7 +974,7 @@ void relay4_page_v2(String Node_id)
     while (1)
     {
         //page init
-        page_title("LORA RELAY 4Channel");
+        page_title("LORA MOSFET4");
         tft.setCursor(20, 50);
         tft.println(Node_id);
 
@@ -976,7 +982,7 @@ void relay4_page_v2(String Node_id)
         drawButton(b_back);
 
         for (int i = 0; i < 4; i++)
-            drawButton(b_relay_switch[i]);
+            drawButton(b_mos_switch[i]);
 
         if (reply_flag == 0)
         {
@@ -998,15 +1004,15 @@ void relay4_page_v2(String Node_id)
                 {
                     String cut_reply = typical_lora_check_request(Node_id);
 
-                    if (cut_reply.indexOf("RELAY4") != -1)
+                    if (cut_reply.indexOf("MOS4") != -1)
                     {
-                        int status = relay4_reply_analyse(cut_reply);
+                        int status = mos4_reply_analyse(cut_reply);
                         for (int i = 0; i < 4; i++)
                         {
                             int temp_value = status % 10;
-                            temp_str = (String) "Relay" + i + (temp_value != 0 ? ":ON" : ":OFF");
-                            b_relay_switch[i].setText(temp_str);
-                            b_relay_switch[i].setValue(temp_value);
+                            temp_str = (String) "MOS" + i + (temp_value != 0 ? ":ON" : ":OFF");
+                            b_mos_switch[i].setText(temp_str);
+                            b_mos_switch[i].setValue(temp_value);
 
                             status /= 10;
                         }
@@ -1047,7 +1053,7 @@ void relay4_page_v2(String Node_id)
                     for (int i = 3; i >= 0; i--)
                     {
                         message_param *= 10;
-                        message_param += b_relay_switch[i].getValue();
+                        message_param += b_mos_switch[i].getValue();
                     }
                     String lora_str = lora.command_format(Node_id, 2, message_param);
                     lora.send(lora_str);
@@ -1072,19 +1078,23 @@ void relay4_page_v2(String Node_id)
                 int refresh_flag = 0;
                 for (int i = 0; i < 4; i++)
                 {
-                    if ((button_value = b_relay_switch[i].checkTouch(pos[0], pos[1])) != UNABLE)
+                    if ((button_value = b_mos_switch[i].checkTouch(pos[0], pos[1])) != UNABLE)
                     {
                         if (DEBUG)
                         {
                             Serial.println("Relay Button");
                         }
 
-                        int temp = b_relay_switch[i].getValue();
-                        temp = !temp;
+                        int temp = b_mos_switch[i].getValue();
+                        if (temp != 0)
+                            temp = 0;
+                        else
+                            temp = 8;
+                        // temp = !temp;
 
-                        b_relay_switch[i].setValue(temp);
-                        temp_str = (String) "Relay" + i + (temp != 0 ? ":ON" : ":OFF");
-                        b_relay_switch[i].setText(temp_str);
+                        b_mos_switch[i].setValue(temp);
+                        temp_str = (String) "MOS" + i + (temp != 0 ? ":ON" : ":OFF");
+                        b_mos_switch[i].setText(temp_str);
 
                         if (DEBUG)
                         {
@@ -1210,18 +1220,20 @@ void soil_reply_analyse(String data)
             }
 
             char rec_cstr[100];
-            sprintf(rec_cstr, "INDEX%d ID%d %s %s", log_index++, id, soil_data_list[i], global_time);
+            sprintf(rec_cstr, "INDEX%d ID%d %s %s", log_index++, id, soil_data_list[i], global_time.c_str());
             Serial.println(rec_cstr);
             appendFile(SD, SOIL_LOG_FILE, rec_cstr);
+
+            page_fresh_flag = SUCCESS;
         }
     }
 }
 
-int relay4_reply_analyse(String data)
+int mos4_reply_analyse(String data)
 {
     int status = 0;
 
-    status = data.substring(7, 11).toInt();
+    status = data.substring(5, 9).toInt();
 
     return status;
 }

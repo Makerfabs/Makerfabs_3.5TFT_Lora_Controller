@@ -1,6 +1,6 @@
 #include "LoraNode.h"
 
-int node_type_count = 7;
+int node_type_count = 8;
 String node_type_list[100] =
     {
         "NULL",
@@ -9,7 +9,8 @@ String node_type_list[100] =
         "RELAY",        //TYPE 02
         "RELAY4",       //TYPE 03
         "TDS",          //TYPE 04
-        "SOIL-PRO"      //TYPE 05
+        "SOIL-PRO",      //TYPE 05
+        "MOS4"
         };    
 
 LoraNode::LoraNode()
