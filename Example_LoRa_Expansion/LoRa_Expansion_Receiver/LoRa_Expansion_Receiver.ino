@@ -4,13 +4,12 @@
 
 #include <LovyanGFX.hpp>
 
-
-//ESP32
+// ESP32
 #define SPI_MOSI 13
 #define SPI_MISO 12
 #define SPI_SCK 14
 
-//TFT
+// TFT
 #define LCD_MOSI SPI_MOSI
 #define LCD_MISO SPI_MISO
 #define LCD_SCK SPI_SCK
@@ -24,8 +23,7 @@
 
 #define SCRENN_ROTATION 3
 
-
-//LoRa
+// LoRa
 #define LORA_MOSI 23
 #define LORA_MISO 19
 #define LORA_SCK 18
@@ -43,7 +41,6 @@
 #define PREAMBLE_LEN 8
 #define GAIN 0
 
-
 struct LGFX_Config
 {
     static constexpr spi_host_device_t spi_host = VSPI_HOST;
@@ -60,9 +57,8 @@ static lgfx::Panel_ILI9488 panel;
 SPIClass SPI_Lora = SPIClass(HSPI);
 SX1278 radio = new Module(LORA_CS, LORA_DIO0, LORA_RST, LORA_DIO1, SPI_Lora, SPISettings());
 
-
-
-void setup() {
+void setup()
+{
     // put your setup code here, to run once:
     Serial.begin(115200);
     Serial.println(" Test Begin!");
@@ -77,7 +73,7 @@ void setup() {
     Serial.print(F("[SX1278] Initializing ... "));
 
     int state = radio.begin(FREQUENCY, BANDWIDTH, SPREADING_FACTOR, CODING_RATE, SX127X_SYNC_WORD, OUTPUT_POWER, PREAMBLE_LEN, GAIN);
-    //int state = radio.begin();
+    // int state = radio.begin();
     if (state == ERR_NONE)
     {
         Serial.println(F("success!"));
@@ -90,17 +86,33 @@ void setup() {
             ;
     }
 
-    
     tft.setRotation(3);
-    tft.pushImage(185, 0, 129, 116, l04);
-    
 
 }
 
+void loop()
+{
+    // lora_receive_task();
+    lora_send_task();
+}
 
-void loop() {
-  
-    //test LoRa
+void lora_send_task()
+{
+    
+    String msg = "IDXDEBUGACT001PARAM000000";
+    page_title(msg);
+    radio.transmit(msg);
+    delay(5000);
+    msg = "IDXDEBUGACT000PARAM000000";
+    page_title(msg);
+    radio.transmit(msg);
+    delay(5000);
+}
+
+void lora_receive_task()
+{
+
+    // test LoRa
     String str;
     int state = radio.receive(str);
 
@@ -113,7 +125,7 @@ void loop() {
         Serial.print(F("[SX1278] Data:\t\t\t"));
         Serial.println(str);
 
-        tft.fillRect(100,270,200,50,TFT_BLACK);
+        tft.fillRect(100, 270, 200, 50, TFT_BLACK);
         tft.setTextColor(TFT_GREEN, TFT_BLACK);
         tft.setCursor(50, 150);
         tft.setTextSize(4);
@@ -152,10 +164,9 @@ void loop() {
         // some other error occurred
         Serial.print(F("failed, code "));
         Serial.println(state);
-    }  
+    }
     delay(1000);
 }
-
 
 void set_tft()
 {
@@ -170,8 +181,12 @@ void set_tft()
 
     tft.setPanel(&panel);
 }
-/*
- * unsigned char testcode[236] = {0XFD,0XFD,0X30,0X3,...
- * Serial.write(testcode,236);
- * 
- */
+
+void page_title(String title)
+{
+    tft.fillScreen(TFT_WHITE);
+    tft.setTextColor(TFT_BLACK);
+    tft.setCursor(20, 10);
+    tft.setTextSize(4);
+    tft.println(title);
+}

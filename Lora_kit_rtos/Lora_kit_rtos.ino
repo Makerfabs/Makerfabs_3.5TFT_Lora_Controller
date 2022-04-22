@@ -76,7 +76,7 @@ int soil_num;
 int soil_id_list[8];
 String soil_data_list[8];
 String soil_time_list[8];
-//Relay
+//Mos
 LoraNode relay_list[2];
 int relay_num;
 int relay_id_list[2];
@@ -516,7 +516,7 @@ void main_page()
     if (soil_num > SOIL_NUM_MAX)
         soil_num = SOIL_NUM_MAX;
 
-    //Read relay from file
+    //Read mos from file
     relay_num = read_nodes_id(SD, MOS_FILE, relay_id_list, RELAY_NUM_MAX);
 
     for (int i = 0; i < relay_num; i++)
@@ -565,7 +565,7 @@ void main_page()
 
     if (relay_num < RELAY_NUM_MAX)
     {
-        b_add_relay.set(330, 210, 140, 40, "Add Relay", ENABLE);
+        b_add_relay.set(330, 210, 140, 40, "Add MOS", ENABLE);
         drawButton(b_add_relay);
     }
 
@@ -788,7 +788,7 @@ int add_relay_page()
     while (1)
     {
         //page init
-        page_title("ADD RELAY4 DEVICE");
+        page_title("ADD MOS4 DEVICE");
 
         drawButton(b_add);
         drawButton(b_back);
@@ -1074,7 +1074,7 @@ void mos_page(String Node_id)
                     return;
                 }
 
-                //Button:Relay
+                //Button:MOS
                 int refresh_flag = 0;
                 for (int i = 0; i < 4; i++)
                 {
@@ -1082,7 +1082,7 @@ void mos_page(String Node_id)
                     {
                         if (DEBUG)
                         {
-                            Serial.println("Relay Button");
+                            Serial.println("MOS Button");
                         }
 
                         int temp = b_mos_switch[i].getValue();
