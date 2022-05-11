@@ -10,10 +10,10 @@
 class Lora
 {
 private:
-    SX1278 *radio;
+    SX1276 *radio;
 
 public:
-    Lora(SX1278 *radio);
+    Lora(SX1276 *radio);
     void init();
 
     String receive();

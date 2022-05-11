@@ -55,7 +55,7 @@ static LGFX_Sprite sprite(&tft);
 static lgfx::Panel_ILI9488 panel;
 
 SPIClass SPI_Lora = SPIClass(HSPI);
-SX1278 radio = new Module(LORA_CS, LORA_DIO0, LORA_RST, LORA_DIO1, SPI_Lora, SPISettings());
+SX1276 radio = new Module(LORA_CS, LORA_DIO0, LORA_RST, LORA_DIO1, SPI_Lora, SPISettings());
 
 void setup()
 {
@@ -69,8 +69,8 @@ void setup()
     set_tft();
     tft.begin();
 
-    // initialize SX1278 with default settings
-    Serial.print(F("[SX1278] Initializing ... "));
+    // initialize SX1276 with default settings
+    Serial.print(F("[SX1276] Initializing ... "));
 
     int state = radio.begin(FREQUENCY, BANDWIDTH, SPREADING_FACTOR, CODING_RATE, SX127X_SYNC_WORD, OUTPUT_POWER, PREAMBLE_LEN, GAIN);
     // int state = radio.begin();
@@ -122,7 +122,7 @@ void lora_receive_task()
         Serial.println(F("success!"));
 
         // print the data of the packet
-        Serial.print(F("[SX1278] Data:\t\t\t"));
+        Serial.print(F("[SX1276] Data:\t\t\t"));
         Serial.println(str);
 
         tft.fillRect(100, 270, 200, 50, TFT_BLACK);
@@ -133,19 +133,19 @@ void lora_receive_task()
 
         // print the RSSI (Received Signal Strength Indicator)
         // of the last received packet
-        Serial.print(F("[SX1278] RSSI:\t\t\t"));
+        Serial.print(F("[SX1276] RSSI:\t\t\t"));
         Serial.print(radio.getRSSI());
         Serial.println(F(" dBm"));
 
         // print the SNR (Signal-to-Noise Ratio)
         // of the last received packet
-        Serial.print(F("[SX1278] SNR:\t\t\t"));
+        Serial.print(F("[SX1276] SNR:\t\t\t"));
         Serial.print(radio.getSNR());
         Serial.println(F(" dB"));
 
         // print frequency error
         // of the last received packet
-        Serial.print(F("[SX1278] Frequency error:\t"));
+        Serial.print(F("[SX1276] Frequency error:\t"));
         Serial.print(radio.getFrequencyError());
         Serial.println(F(" Hz"));
     }

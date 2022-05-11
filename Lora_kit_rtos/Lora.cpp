@@ -1,6 +1,6 @@
 #include "Lora.h"
 
-Lora::Lora(SX1278 *radio)
+Lora::Lora(SX1276 *radio)
 {
     this->radio = radio;
 }
@@ -41,7 +41,7 @@ void Lora::init()
 String Lora::receive()
 {
     if (DEBUG)
-        Serial.print(F("[SX1278] Waiting for incoming transmission ... "));
+        Serial.print(F("[SX1276] Waiting for incoming transmission ... "));
 
     String str;
     int state = this->radio->receive(str);
@@ -55,25 +55,25 @@ String Lora::receive()
 
             // print the RSSI (Received Signal Strength Indicator)
             // of the last received packet
-            Serial.print(F("[SX1278] RSSI:\t\t\t"));
+            Serial.print(F("[SX1276] RSSI:\t\t\t"));
             Serial.print(this->radio->getRSSI());
             Serial.println(F(" dBm"));
 
             // print the SNR (Signal-to-Noise Ratio)
             // of the last received packet
-            Serial.print(F("[SX1278] SNR:\t\t\t"));
+            Serial.print(F("[SX1276] SNR:\t\t\t"));
             Serial.print(this->radio->getSNR());
             Serial.println(F(" dB"));
 
             // print frequency error
             // of the last received packet
-            Serial.print(F("[SX1278] Frequency error:\t"));
+            Serial.print(F("[SX1276] Frequency error:\t"));
             Serial.print(this->radio->getFrequencyError());
             Serial.println(F(" Hz"));
         }
 
         // print the data of the packet
-        Serial.print(F("[SX1278] Data:\t\t\t"));
+        Serial.print(F("[SX1276] Data:\t\t\t"));
         Serial.println(str);
 
         return str;
@@ -123,36 +123,36 @@ String Lora::receive_intr()
 
                 // print the RSSI (Received Signal Strength Indicator)
                 // of the last received packet
-                Serial.print(F("[SX1278] RSSI:\t\t\t"));
+                Serial.print(F("[SX1276] RSSI:\t\t\t"));
                 Serial.print(this->radio->getRSSI());
                 Serial.println(F(" dBm"));
 
                 // print the SNR (Signal-to-Noise Ratio)
                 // of the last received packet
-                Serial.print(F("[SX1278] SNR:\t\t\t"));
+                Serial.print(F("[SX1276] SNR:\t\t\t"));
                 Serial.print(this->radio->getSNR());
                 Serial.println(F(" dB"));
 
                 // print frequency error
                 // of the last received packet
-                Serial.print(F("[SX1278] Frequency error:\t"));
+                Serial.print(F("[SX1276] Frequency error:\t"));
                 Serial.print(this->radio->getFrequencyError());
                 Serial.println(F(" Hz"));
             }
 
             // print the data of the packet
-            Serial.print(F("[SX1278] Data:\t\t\t"));
+            Serial.print(F("[SX1276] Data:\t\t\t"));
             Serial.println(str);
         }
         else if (state == ERR_CRC_MISMATCH)
         {
             // packet was received, but is malformed
-            Serial.println(F("[SX1278] CRC error!"));
+            Serial.println(F("[SX1276] CRC error!"));
         }
         else
         {
             // some other error occurred
-            Serial.print(F("[SX1278] Failed, code "));
+            Serial.print(F("[SX1276] Failed, code "));
             Serial.println(state);
         }
 

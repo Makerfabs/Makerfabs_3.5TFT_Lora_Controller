@@ -2,11 +2,12 @@
 
 ```c++
 /*
-Version:		V1.1
+Version:		V1.2
 Author:			Vincent
 Create Date:	2021/9/18
 Note:
 		V1.1 Add more description.
+		V1.2 Add wiki and shop link. Add Lora Kit firmware.
 */
 ```
 ![](md_pic/main.gif)
@@ -27,9 +28,9 @@ Note:
 
 ## Intruduce
 
-Product Link ：[]()
+Product Link ：[Lora-radio-expansion-for-esp32-display](https://www.makerfabs.com/lora-radio-expansion-for-esp32-display.html)
 
-Wiki Link :  []()
+Wiki Link :  [LoRa_Radio_Expansion](https://www.makerfabs.com/wiki/index.php?title=LoRa_Radio_Expansion)
 
 
 LoRa Radio expansion based on the LoRa module and provided a wireless Lot solution (ESP32-LoRa). This board is designed for ESP32 3.5" TFT Touch with Camera (also for the 3.2" one), mainly used with the ESP32 3.5" TFT Touch board.
@@ -60,13 +61,15 @@ It is an extension of Touch Screen Camera series.
 
 # Makerfas 3.5“ TFT Lora Controller
 
+**Disclaimer, this is only a demo, not as a hardware product for sale, only for reference.**
+
 ## Introduce
+
+[ESP32 TFT LCD with Camera(3.5'')](https://www.makerfabs.com/wiki/index.php?title=ESP32_TFT_LCD_with_Camera(3.5%27%27)) was used as a demonstration.
 
 An open Lora control terminal that currently supports 6 Makerfabs of Lora nodes (some are not for sale).  Realizes UI interface, can increase sensor according to UID. And there are different control interfaces for different nodes. 
 
 Five nodes can be online at the same time and the node status is updated periodically. 
-
-
 
 ## How to use
 
@@ -100,21 +103,19 @@ Some types of nodes have control functions, such as controlling the Relay switch
 
 Click the button to enter the keypad or change the switch state.
 
-# Code Explain
+## Code Upload
 
-## Firmware
-
-In .\firmware\ESP32TFT3.5-LORA
+Firmware is in .\firmware\ESP32TFT3.5-LORA
 
 ### Compiler Options
 
 **If you have any questions，such as how to install the development board, how to download the code, how to install the library. Please refer to :[Makerfabs_FAQ](https://github.com/Makerfabs/Makerfabs_FAQ)**
 
-- Install board : ESP32 .
+- Install board : ESP32 (Version 1.0.6)
 
 ![](md_pic/board-version.jpg)
 
-- Install library: LovyanGFX, RadioLib
+- Install library: LovyanGFX, RadioLib(Version 4.6.0)
 
 ![](md_pic/library-version.jpg)
 
@@ -140,6 +141,26 @@ Makerfas 3.5“ TFT Lora Controller main code. The default Lora frequency is 434
 #define GAIN 0
 ```
 
-## Example Nodes
+# Example Nodes
 
-We have provided some node routines for demonstration purposes, some of which are not yet available for sale in beta. But the instruction system is broadly compatible.
+We removed the relevant Lora Nodes demo.
+Now all based on the example of "328p + lora" has moved to the [Makerfabs_MaLora]( ()https://github.com/Makerfabs/Makerfabs_MaLora) in the project.
+
+
+
+# Lora Soil Monitoring & Irrigation Kit
+
+## Introduce
+
+This Kit is based on ESP32 and Lora. The ESP32 3.5 inch display is the console for the system, it receives the Lora message from Lora moisture sensors (support up to 8 sensors in our default firmware) , and send control commands to Lora 4-chnanel MOSFET(2 4-channel MOSFET supported, with totally 8 channels), to control the connected valves open/close, and thus to control the irrigation for multiple points.
+
+Shop Link: [Lora Soil Monitoring & Irrigation Kit](https://www.makerfabs.com/lora-soil-monitoring-irrigation-kit.html)
+
+![kit](md_pic/kit.jpg)
+
+Please refer to instructables for instructions:
+
+Instructables Link: [Soil-Monitoring-and-Irrigation-With-Lora](https://www.instructables.com/Soil-Monitoring-and-Irrigation-With-Lora/)
+
+Youtube Link: [Soil Monitoring and Irrigation with Lora - How it Works](https://www.youtube.com/watch?v=p6YZIw9I9zE&feature=emb_imp_woyt)
+
