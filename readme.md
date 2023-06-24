@@ -20,7 +20,7 @@ Note:
 
 [Makerfabs home page](https://www.makerfabs.com/)
 
-[Makerfabs Wiki](https://makerfabs.com/wiki/index.php?title=Main_Page)
+[Makerfabs Wiki](https://wiki.makerfabs.com/)
 
 
 
@@ -30,7 +30,7 @@ Note:
 
 Product Link ：[Lora-radio-expansion-for-esp32-display](https://www.makerfabs.com/lora-radio-expansion-for-esp32-display.html)
 
-Wiki Link :  [LoRa_Radio_Expansion](https://www.makerfabs.com/wiki/index.php?title=LoRa_Radio_Expansion)
+Wiki Link :  [LoRa_Radio_Expansion](https://wiki.makerfabs.com/MaTouch_3.5_TFT_Touch_with_Camera.html#use-with-lora-radio-expansion)
 
 
 LoRa Radio expansion based on the LoRa module and provided a wireless Lot solution (ESP32-LoRa). This board is designed for ESP32 3.5" TFT Touch with Camera (also for the 3.2" one), mainly used with the ESP32 3.5" TFT Touch board.
@@ -39,9 +39,9 @@ We used LoRa Radio expansion and  ESP32 3.5" TFT Touch with Camera to make a Lor
 
 It is an extension of Touch Screen Camera series.
 
-[ESP32 TFT LCD with Camera(3.5'')](https://www.makerfabs.com/wiki/index.php?title=ESP32_TFT_LCD_with_Camera(3.5%27%27))
+[ESP32 TFT LCD with Camera(3.5'')](https://wiki.makerfabs.com/MaTouch_3.5_TFT_Touch_with_Camera.html))
 
-[ESP32 TFT LCD with Camera(3.2'')](https://www.makerfabs.com/wiki/index.php?title=ESP32_TFT_LCD_with_Camera(3.2%27%27))
+[ESP32 TFT LCD with Camera(3.2'')](https://wiki.makerfabs.com/MaTouch_3.2_TFT_LCD_with_Camera.html))
 
 ## Feature
 
@@ -65,7 +65,7 @@ It is an extension of Touch Screen Camera series.
 
 ## Introduce
 
-[ESP32 TFT LCD with Camera(3.5'')](https://www.makerfabs.com/wiki/index.php?title=ESP32_TFT_LCD_with_Camera(3.5%27%27)) was used as a demonstration.
+[ESP32 TFT LCD with Camera(3.5'')](https://wiki.makerfabs.com/MaTouch_3.5_TFT_Touch_with_Camera.html)) was used as a demonstration.
 
 An open Lora control terminal that currently supports 6 Makerfabs of Lora nodes (some are not for sale).  Realizes UI interface, can increase sensor according to UID. And there are different control interfaces for different nodes. 
 
