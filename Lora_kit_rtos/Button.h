@@ -1,7 +1,7 @@
 #ifndef _Button_H_
 #define _Button_H_
 
-#include <arduino.h>
+#include <Arduino.h>
 
 #define UNABLE -1
 #define ENABLE 1

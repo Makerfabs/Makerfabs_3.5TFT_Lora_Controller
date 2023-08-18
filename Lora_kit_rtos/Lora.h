@@ -2,7 +2,7 @@
 #ifndef _Lora_H_
 #define _Lora_H_
 
-#include <arduino.h>
+#include <Arduino.h>
 #include <RadioLib.h>
 
 #include "makerfabs_pin.h"
