@@ -1,14 +1,21 @@
 #include "log_save.h"
 
-void SD_init()
+void SD_init() //SPIClass& spi)
 {
-
-    if (!SD.begin(SD_CS, SPI))
+    if (!SD.begin(SD_CS, SPI, 1000000))
     {
+        // Possible reasons:
+        // - Init error/conflict with GFX
+        // - Card not inserted
+        // - Wrong CS pin
+        // - Wiring issue
+        // - Unsupported card format
+        // - Faulty card
         Serial.println("Card Mount Failed");
         return;
     }
     uint8_t cardType = SD.cardType();
+    Serial.println("sd card: still here...");
 
     if (cardType == CARD_NONE)
     {

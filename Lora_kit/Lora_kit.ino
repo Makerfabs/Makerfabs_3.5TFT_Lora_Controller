@@ -33,7 +33,7 @@
 //Wifi and ntp
 char ssid[40] = "ssid";
 char pwd[40] = "121345678";
-const char *ntpServer = "120.25.108.11";
+const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = (-5) * 60 * 60; //China+8
 const int daylightOffset_sec = 0;
 struct tm timeinfo;

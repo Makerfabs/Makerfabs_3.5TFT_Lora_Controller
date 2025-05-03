@@ -1,7 +1,7 @@
 #ifndef _LoraNode_H_
 #define _LoraNode_H_
 
-#include <arduino.h>
+#include <Arduino.h>
 
 #define NOTYPE -1
 
