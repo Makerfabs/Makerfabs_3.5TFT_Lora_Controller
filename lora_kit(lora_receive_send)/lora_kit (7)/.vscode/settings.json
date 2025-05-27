@@ -1,0 +1,15 @@
+{
+    "files.associations": {
+        "ui.h": "c",
+        "ui_helpers.h": "c",
+        "lv_obj.h": "c",
+        "lv_gpu_d2_ra6m3.h": "c",
+        "lv_gpu_nxp_pxp.h": "c",
+        "lv_assert.h": "c",
+        "lv_conf_internal.h": "c",
+        "lv_disp.h": "c",
+        "lv_gpu_stm32_dma2d.h": "c",
+        "lv_ll.h": "c",
+        "lvgl.h": "c"
+    }
+}
