@@ -1,6 +1,8 @@
 #ifndef _Makerfabs_Pin_H_
 #define _Makerfabs_Pin_H_
 
+#define BUZZER 5
+
 #define DEBUG 1
 
 #define I2C_SDA 26
@@ -54,7 +56,9 @@
 #define LORA_DIO0 32
 #define LORA_DIO1 35
 
-#define FREQUENCY 434.0
+// fixme - read from file
+#define FREQUENCY 915.0
+
 #define BANDWIDTH 125.0
 #define SPREADING_FACTOR 9
 #define CODING_RATE 7

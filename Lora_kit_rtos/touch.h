@@ -1,7 +1,7 @@
 #ifndef _Touch_H_
 #define _Touch_H_
 
-#include <arduino.h>
+#include <Arduino.h>
 #include "makerfabs_pin.h"
 
 #ifdef FT6236_TOUCH

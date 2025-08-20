@@ -4,8 +4,8 @@
 #define ARDUINO_RUNNING_CORE 1
 #endif
 
+
 #include <SPI.h>
-#include <LovyanGFX.hpp>
 #include <WiFi.h>
 #include <time.h>
 
@@ -16,15 +16,81 @@
 #include "Button.h"
 #include "log_save.h"
 
+
+#include <LovyanGFX.hpp>
+
+class LGFX : public lgfx::LGFX_Device
+{
+    lgfx::Panel_ILI9488     _panel_instance;
+    lgfx::Bus_SPI           _bus_instance;   // SPI bus instance
+    lgfx::Light_PWM         _light_instance;
+    lgfx::Touch_FT5x06       _touch_instance; // FT5206, FT5306, FT5406, FT6206, FT6236, FT6336, FT6436
+
+    public:
+      LGFX(void)
+      {
+        // bus
+        { 
+          auto cfg = _bus_instance.config();
+          cfg.spi_host = VSPI_HOST;
+          cfg.pin_sclk = LCD_SCK; 
+          cfg.pin_mosi = LCD_MOSI;
+          cfg.pin_miso = LCD_MISO;
+          cfg.pin_dc = LCD_DC;
+          _bus_instance.config(cfg);
+          _panel_instance.setBus(&_bus_instance);
+        }
+        
+        // pannel
+        { 
+          auto cfg = _panel_instance.config();
+          cfg.pin_cs = LCD_CS;
+          cfg.pin_rst = LCD_RST;
+
+          // vital, as we share with SD card
+          cfg.bus_shared = true;
+          _panel_instance.config(cfg);
+        }
+        
+        // backlight
+        { 
+          auto cfg = _light_instance.config();  
+          cfg.pin_bl = LCD_BL;
+          _light_instance.config(cfg);
+          _panel_instance.setLight(&_light_instance);
+        }
+  
+        // touch screen
+        { 
+          auto cfg = _touch_instance.config();
+          cfg.i2c_port = 1; 
+          cfg.i2c_addr = 0x38;
+          cfg.pin_sda = I2C_SDA;
+          cfg.pin_scl = I2C_SCL;
+          cfg.freq = 400000;
+       
+          _touch_instance.config(cfg);
+          _panel_instance.setTouch(&_touch_instance);
+        }
+      
+        setPanel(&_panel_instance);
+      }
+};
+
+
+static LGFX tft;
+static LGFX_Sprite sprite(&tft);
+
+
 #define SUCCESS 1
 #define FALSE 0
 #define ASK_CYCLE 5000
 
-#define COLOR_BACKGROUND 0xEF9E
+#define COLOR_BACKGROUND TFT_GREEN
 #define COLOR_BUTTON TFT_WHITE
-#define COLOR_TEXT 0x322B
+#define COLOR_TEXT TFT_BLACK
 #define COLOR_LINE TFT_BLACK
-#define COLOR_SHADOW 0x4BAF
+#define COLOR_SHADOW TFT_BLUE
 
 #define SOIL_FILE "/soil_id.txt"
 #define RELAY_FILE "/relay_id.txt"
@@ -35,19 +101,6 @@
 #define SOIL_NUM_MAX 8
 #define RELAY_NUM_MAX 2
 
-//TFT
-struct LGFX_Config
-{
-    static constexpr spi_host_device_t spi_host = VSPI_HOST;
-    static constexpr int dma_channel = 1;
-    static constexpr int spi_sclk = LCD_SCK;
-    static constexpr int spi_mosi = LCD_MOSI;
-    static constexpr int spi_miso = LCD_MISO;
-};
-
-static lgfx::LGFX_SPI<LGFX_Config> tft;
-static LGFX_Sprite sprite(&tft);
-static lgfx::Panel_ILI9488 panel;
 
 //Lora
 SPIClass SPI_Lora = SPIClass(HSPI);
@@ -59,11 +112,11 @@ String test_str = "";
 char ssid[40] = "ssid";
 char pwd[40] = "121345678";
 int wifi_flag = FALSE;
-const char *ntpServer = "120.25.108.11";
-const long gmtOffset_sec = (-5) * 60 * 60; //China+8
+const char *ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = 0; // UTC
 const int daylightOffset_sec = 0;
 struct tm timeinfo;
-String global_time = "WIFI UNLINK";
+String global_time = "NTP ERR";
 int time_fresh_flag = FALSE;
 int log_index = 0;
 int page_fresh_flag = FALSE;
@@ -84,14 +137,21 @@ int relay_id_list[2];
 void setup()
 {
     Serial.begin(115200);
+    delay(2000);
 
-    pinMode(LCD_CS, OUTPUT);
-    // pinMode(SD_CS, OUTPUT);
 
-    SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
+    // gfx init first
+    xTaskCreatePinnedToCore(Task_TFT, "Task_TFT", 20480, NULL, 3, NULL, ARDUINO_RUNNING_CORE);
+
+    SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI, SD_CS);
     SPI_Lora.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_CS);
-
+    
+    pinMode(BUZZER, OUTPUT);
     SD_init();
+
+
+    // lora
+    
     read_wifi_config(SD, WIFI_FILE, ssid, pwd);
     wifi_flag = wifi_init();
 
@@ -102,44 +162,38 @@ void setup()
         soil_time_list[i] = "NULL";
     }
 
-    xTaskCreatePinnedToCore(Task_TFT, "Task_TFT", 20480, NULL, 3, NULL, ARDUINO_RUNNING_CORE);
     xTaskCreatePinnedToCore(Task_Lora, "Task_Lora", 10240, NULL, 2, NULL, ARDUINO_RUNNING_CORE);
 
     if (wifi_flag == SUCCESS)
-        xTaskCreatePinnedToCore(Task_Clock, "Task_Clock", 2048, NULL, 2, NULL, ARDUINO_RUNNING_CORE);
+    {
+      xTaskCreatePinnedToCore(Task_Clock, "Task_Clock", 2048, NULL, 2, NULL, ARDUINO_RUNNING_CORE);
+    }
 }
 
 void loop()
 {
 }
 
-void Task_TFT(void *pvParameters) // This is a task.
+void Task_TFT(void *pvParameters)
 {
     (void)pvParameters;
 
-    panel.freq_write = 40000000;
-    panel.freq_fill = 40000000;
-    panel.freq_read = 16000000;
+    digitalWrite(BUZZER, HIGH);
+    vTaskDelay(1000);
 
-    panel.spi_cs = LCD_CS;
-    panel.spi_dc = LCD_DC;
-    panel.gpio_rst = LCD_RST;
-    panel.gpio_bl = LCD_BL;
-
-    tft.setPanel(&panel);
-    tft.begin();
+    tft.init();
     tft.setRotation(SCRENN_ROTATION);
     tft.fillScreen(COLOR_BACKGROUND);
 
+    digitalWrite(BUZZER, LOW); //Stop the sound
     touch_init();
     welcome_page();
 
     while (1) // A Task shall never return or exit.
     {
         // page_title(test_str + "  TestCount: " + my_count++);
-        // vTaskDelay(500);
-
-        // test_page();
+      vTaskDelay(1000);
+//         test_page();
         main_page();
     }
 }
@@ -170,7 +224,6 @@ void Task_Lora(void *pvParameters)
 
     vTaskDelay(10000);
     lora.init();
-
     while (1)
     {
         if (lora_task_index)
@@ -178,8 +231,6 @@ void Task_Lora(void *pvParameters)
             //Receive Lora
             String rec_str = "";
             rec_str = lora.receive();
-            // rec_str = lora.receive_intr();
-            // Serial.println(rec_str);
             if (!rec_str.equals(""))
             {
                 switch (lora_task_index)
@@ -1160,6 +1211,23 @@ void null_type_page()
     }
 }
 
+
+void dump_time() {
+    struct tm tmstruct;
+    char buffer[30];
+    getLocalTime(&tmstruct, 5000);
+    sprintf(buffer,"%d-%02d-%02d, %02d:%02d:%02d",(tmstruct.tm_year)+1900,( tmstruct.tm_mon)+1, tmstruct.tm_mday,tmstruct.tm_hour , tmstruct.tm_min, tmstruct.tm_sec);
+    Serial.print("ISO-8601 time: ");
+    Serial.println(String(buffer));
+
+    // if this is > 10000 it worked :)
+    time_t now;
+    time(&now);
+    Serial.print("Epoch time (UTC): ");
+    Serial.println(now);
+  
+}
+
 //init
 int wifi_init()
 {
@@ -1187,9 +1255,10 @@ int wifi_init()
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
 
-    configTime(28800, daylightOffset_sec, ntpServer);
-    // configTime((const long)(timezone * 3600), daylightOffset_sec, ntpServer);
-    Serial.println(F("Alread get npt time."));
+    // always UTC+0!
+    configTime(0, 0, ntpServer);
+    Serial.println(F("time set from NTP"));
+    dump_time();
 
     return SUCCESS;
 }

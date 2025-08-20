@@ -7,8 +7,10 @@ Lora::Lora(SX1276 *radio)
 
 void Lora::init()
 {
-    int state = this->radio->begin(FREQUENCY, BANDWIDTH, SPREADING_FACTOR, CODING_RATE, SX127X_SYNC_WORD, OUTPUT_POWER, PREAMBLE_LEN, GAIN);
-    if (state == ERR_NONE)
+    Serial.print("Lora frequency ");
+    Serial.println(FREQUENCY);
+    int state = this->radio->begin(FREQUENCY, BANDWIDTH, SPREADING_FACTOR, CODING_RATE, RADIOLIB_SX127X_SYNC_WORD, OUTPUT_POWER, PREAMBLE_LEN, GAIN);
+    if (state == RADIOLIB_ERR_NONE)
     {
         Serial.println(F("Lora init success!"));
     }
@@ -44,9 +46,12 @@ String Lora::receive()
         Serial.print(F("[SX1276] Waiting for incoming transmission ... "));
 
     String str;
+    
     int state = this->radio->receive(str);
 
-    if (state == ERR_NONE)
+    // RADIOLIB_ERR_LORA_HEADER_DAMAGED can be ignored
+    // https://github.com/jgromes/RadioLib/pull/1262/files
+    if (state == RADIOLIB_ERR_NONE || state == RADIOLIB_ERR_LORA_HEADER_DAMAGED)
     {
         if (DEBUG)
         {
@@ -78,16 +83,22 @@ String Lora::receive()
 
         return str;
     }
-    else if (state == ERR_RX_TIMEOUT)
+    else if (state == RADIOLIB_ERR_RX_TIMEOUT)
     {
         // timeout occurred while waiting for a packet
-        if (DEBUG)
+        if (DEBUG) {
+            // timeout means no data received- but sensors only transmit once per hour so 99.9% of calls end here
             Serial.println(F("timeout!"));
+        }
     }
-    else if (state == ERR_CRC_MISMATCH)
+    else if (state == RADIOLIB_ERR_CRC_MISMATCH)
     {
         // packet was received, but is malformed
         Serial.println(F("CRC error!"));
+    }
+    else if (state == RADIOLIB_ERR_LORA_HEADER_DAMAGED)
+    {
+        Serial.println(F("HEADER damaged!"));
     }
     else
     {
@@ -95,6 +106,9 @@ String Lora::receive()
         Serial.print(F("failed, code "));
         Serial.println(state);
     }
+    //Serial.println("returning from receive()");
+    // must always return something or get error: abort() was called at PC
+    return "";
 }
 
 String Lora::receive_intr()
@@ -114,7 +128,7 @@ String Lora::receive_intr()
         // you can read received data as an Arduino String
 
         int state = this->radio->readData(str);
-        if (state == ERR_NONE)
+        if (state == RADIOLIB_ERR_NONE)
         {
             if (DEBUG)
             {
@@ -144,7 +158,7 @@ String Lora::receive_intr()
             Serial.print(F("[SX1276] Data:\t\t\t"));
             Serial.println(str);
         }
-        else if (state == ERR_CRC_MISMATCH)
+        else if (state == RADIOLIB_ERR_CRC_MISMATCH)
         {
             // packet was received, but is malformed
             Serial.println(F("[SX1276] CRC error!"));
